@@ -1,3 +1,16 @@
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+
+![Suricata](https://img.shields.io/badge/Suricata-8.0.3-red)
+
+![Nginx](https://img.shields.io/badge/Nginx-Reverse%20Proxy-green)
+
+![SQLite](https://img.shields.io/badge/SQLite-Database-blue)
+
+![Ubuntu](https://img.shields.io/badge/Ubuntu-24.04-orange)
+
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+
 # Active Deception System
 
 An Active Deception Security System that automatically detects malicious traffic using **Suricata IDS**, evaluates attacker risk levels, and dynamically redirects suspicious clients to a **Honeypot** through an **Nginx Reverse Proxy**.
