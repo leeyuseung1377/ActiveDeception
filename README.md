@@ -12,3 +12,7 @@ VM 3 : HoneyPot Web  / IP : 192.168.85.160 / spec : 2 vCPU, 4GB
 
 VM 4 : Elasticsearch, Kibana / IP : 192.168.85.105 / spec : 4 vCPU, 8GB 
 
+
+Add custom rule file in Suricata.
+
+Defense OWASP10 attack's.
