@@ -1,100 +1,345 @@
-# Active-Deception
-Making Active Decption system
+# Active Deception System
 
-Purpose of this system is trap attacker in honeypot(Fake Web) analize new attack pattern.
+An Active Deception Security System that automatically detects malicious traffic using **Suricata IDS**, evaluates attacker risk levels, and dynamically redirects suspicious clients to a **Honeypot** through an **Nginx Reverse Proxy**.
 
-# BluePrint
-VM 1 : Nginx, Suricata, Controller / IP : 192.168.85.100 / spec : 2 vCPU, 4GB 
+Unlike traditional IDS solutions that only detect attacks, this project actively deceives attackers while protecting the real production server.
 
-VM 2 : Real Web / IP : 192.168.85.150 / spec : 2 vCPU, 4GB 
+---
 
-VM 3 : HoneyPot Web  / IP : 192.168.85.160 / spec : 2 vCPU, 4GB 
+# Project Architecture
 
-VM 4 : Elasticsearch, Kibana / IP : 192.168.85.105 / spec : 4 vCPU, 8GB 
+```text
+                +----------------------+
+                |     Attacker (Kali)  |
+                +----------+-----------+
+                           |
+                      HTTP Request
+                           |
+                           v
++-------------------------------------------------------+
+| VM1 : Deception Gateway                               |
+|-------------------------------------------------------|
+| • Nginx Reverse Proxy                                 |
+| • Suricata IDS                                        |
+| • Python Controller                                   |
+| • SQLite Database                                     |
+|-------------------------------------------------------|
+| Detect → Risk Analysis → Redirect Decision            |
++-------------+----------------------------+------------+
+              |                            |
+              |                            |
+              v                            v
++-------------------------+      +-----------------------+
+| VM2 : Real Web Server   |      | VM3 : Honeypot        |
+| 192.168.85.150          |      | 192.168.85.160        |
++-------------------------+      +-----------------------+
+```
 
-# Software Components
+---
 
-The following components are used:
+# Features
 
-* Suricata 8.0.3
-* Nginx
-* Python 3
-* systemd
-* Kali Linux
-* Real Web Server
-* Honeypot Server
+## Suricata IDS
 
-# The Suricata monitoring interface used in this environment is:
-* enp2s0
+- Suricata 8.0.3
+- Custom OWASP Top 10 Detection Rules
+- Real-time Attack Detection
+- JSON Logging via `eve.json`
 
-The local Suricata rule file is:
-* /var/lib/suricata/rules/local.rules
+### Supported Detection
 
-Add custom rule file in Suricata.
-Defense OWASP10 attack's.
+- SQL Injection
+- Cross Site Scripting (XSS)
+- Command Injection
+- Directory Traversal
+- SSRF
+- Authentication Attacks
+- Request Smuggling
+- Deserialization
+- Broken Access Control
+- Nmap Scanning
 
-# Directory Structure
-<img width="277" height="336" alt="image" src="https://github.com/user-attachments/assets/9cf50cf2-7773-4be6-8745-3498fe85432e" />
+---
 
-/opt/deception/
-├── controller.py
-└── risky_ips.json
+## Python Controller
 
-/etc/nginx/conf.d/
-├── deception_proxy.conf
-└── risky_ips.map
+The controller continuously analyzes Suricata alerts.
 
-/etc/systemd/system/
-├── deception-controller.service
-└── deception-controller.timer
+Current functions
 
-/var/log/
+- Parse `eve.json`
+- Remove duplicated events
+- Calculate attacker risk scores
+- Store attack history
+- Update attacker status
+- Generate `risky_ips.json`
+
+---
+
+## SQLite Database
+
+### alert_events
+
+Stores every detected attack.
+
+Information stored
+
+- Source IP
+- Destination IP
+- Signature
+- Severity
+- Timestamp
+- Raw Suricata Event
+
+---
+
+### risk_scores
+
+Maintains cumulative attacker scores.
+
+Example
+
+| Source IP | Score | Status |
+|-----------|------:|--------|
+|192.168.85.144|18|RISKY|
+|192.168.85.120|4|NORMAL|
+
+---
+
+### controller_runs
+
+Stores controller execution history.
+
+Includes
+
+- Start Time
+- End Time
+- Processed Events
+- Duplicate Events
+- Invalid Events
+
+---
+
+# Automatic Risk Evaluation
+
+Each detected attack increases the attacker's risk score.
+
+Example
+
+| Attack | Score |
+|---------|------:|
+|SQL Injection|+8|
+|Command Injection|+10|
+|Directory Traversal|+4|
+|Nmap Scan|+2|
+
+Once the accumulated score exceeds the threshold, the attacker is classified as:
+
+```text
+RISKY
+```
+
+---
+
+# Automatic Nginx Synchronization
+
+```text
+Suricata Alert
+
+↓
+
+Python Controller
+
+↓
+
+SQLite
+
+↓
+
+risky_ips.json
+
+↓
+
+sync_nginx_risky_ips.py
+
+↓
+
+/etc/nginx/deception/risky_ips.map
+
+↓
+
+Nginx Reload
+```
+
+No manual intervention is required.
+
+---
+
+# Dynamic Traffic Redirection
+
+### Normal User
+
+```text
+Client
+
+↓
+
+Nginx
+
+↓
+
+Real Web Server
+```
+
+### Suspicious User
+
+```text
+Client
+
+↓
+
+Nginx
+
+↓
+
+Honeypot
+```
+
+---
+
+# Current Workflow
+
+```text
+Suricata IDS
+
+↓
+
+eve.json
+
+↓
+
+Python Controller
+
+↓
+
+SQLite Database
+
+↓
+
+Risk Score Calculation
+
+↓
+
+risky_ips.json
+
+↓
+
+Nginx Synchronization
+
+↓
+
+Automatic Reload
+
+↓
+
+Traffic Redirection
+
+↓
+
+Real Server / Honeypot
+```
+
+---
+
+# Project Status
+
+## Completed
+
+- Nginx Reverse Proxy
+- Suricata Deployment
+- Custom Detection Rules
+- Python Controller
+- SQLite Integration
+- Risk Score System
+- Automatic JSON Generation
+- Automatic Nginx Synchronization
+- Dynamic Honeypot Redirection
+
+---
+
+## In Progress
+
+- Risk Score Optimization
+- Time-based Score Decay
+- Honeypot Session Logging
+- Web Administration Dashboard
+- Kibana Visualization
+
+---
+
+## Planned
+
+- Adaptive Risk Threshold
+- Machine Learning-based Risk Prediction
+- Threat Intelligence Integration
+- Multiple Honeypot Support
+- REST API
+- Docker Deployment
+
+---
+
+# Technology Stack
+
+| Component | Technology |
+|------------|------------|
+| Operating System | Ubuntu Server |
+| IDS | Suricata 8.0.3 |
+| Reverse Proxy | Nginx |
+| Programming Language | Python 3 |
+| Database | SQLite |
+| Logging | Suricata eve.json |
+| Virtualization | VMware |
+
+---
+
+# Project Goal
+
+This project aims to build an **Active Deception Platform** capable of
+
+- Detecting malicious network traffic
+- Evaluating attacker behavior
+- Automatically redirecting suspicious users
+- Collecting attack intelligence
+- Protecting production services without affecting legitimate users
+
+---
+
+# Repository Structure
+
+```text
+Active-Deception/
+│
+├── controller/
+│   ├── controller.py
+│   ├── sync_nginx_risky_ips.py
+│   └── risky_ips.json
+│
+├── database/
+│   └── deception.db
+│
 ├── nginx/
-│   ├── deception_access.log
-│   └── deception_error.log
-└── suricata/
-    ├── eve.json
-    ├── fast.log
-    └── suricata.log
+│   └── deception_proxy.conf
+│
+├── suricata/
+│   └── local.rules
+│
+├── docs/
+│
+└── README.md
+```
 
-# Command line's for Suricata.
-* ip addr
-* ip -br addr
-* ip addr show enp2s0
-* ip link show enp2s0
-* suricata -V
+---
 
-* sudo suricata -T -c /etc/suricata/suricata.yaml
-* sudo cat /var/lib/suricata/rules/local.rules
+# License
 
-* sudo systemctl start suricata
-
-* sudo tail -f /var/log/suricata/fast.log
-* sudo tail -n 30 /var/log/suricata/fast.log
-* sudo grep "192.168.85.144" \
-  /var/log/suricata/fast.log
-* sudo tail -f /var/log/suricata/eve.json
-* sudo tail -f /var/log/suricata/stats.log
-
-# Command line's for Nginx Reverse Proxy
-* vi /etc/nginx/conf.d/deception_proxy.conf
-* vi /etc/nginx/conf.d/risky_ips.map
-* sudo nginx -t
-* sudo systemctl start nginx
-
-* sudo tail -f /var/log/nginx/deception_access.log
-* sudo tail -f /var/log/nginx/deception_error.log
-
-# Command line's for Risk Score Controller
-* /opt/deception/controller.py
-* sudo vi /opt/deception/controller.py
-* /opt/deception/risky_ips.json // Risk data file
-
-Run Controller manually
-* sudo /opt/deception/controller.py
-Run Controller Automation
-* /etc/systemd/system/deception-controller.service
-* vi /etc/systemd/system/deception-controller.service
-* vi /etc/systemd/system/deception-controller.timer
-enable automation
-* sudo systemctl enable --now deception-controller.timer
+MIT License
