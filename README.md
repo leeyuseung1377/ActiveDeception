@@ -34,6 +34,8 @@ Add custom rule file in Suricata.
 Defense OWASP10 attack's.
 
 # Directory Structure
+<img width="277" height="336" alt="image" src="https://github.com/user-attachments/assets/9cf50cf2-7773-4be6-8745-3498fe85432e" />
+
 /opt/deception/
 ├── controller.py
 └── risky_ips.json
